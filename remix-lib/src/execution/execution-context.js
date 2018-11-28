@@ -5,6 +5,8 @@ var EthJSVM = require('ethereumjs-vm')
 var ethUtil = require('ethereumjs-util')
 var StateManager = require('ethereumjs-vm/dist/stateManager')
 var Web3VMProvider = require('../web3Provider/web3VmProvider')
+const ChainsqlAPI = require('chainsql').ChainsqlAPI;
+const chainsql = new ChainsqlAPI();
 
 var rlp = ethUtil.rlp
 
@@ -194,7 +196,7 @@ function ExecutionContext () {
       }
     }
 
-    if (context === 'web3') {
+    if (context === 'chainsql') {
       confirmCb(cb)
     }
 
@@ -234,25 +236,21 @@ function ExecutionContext () {
 
   // TODO: not used here anymore and needs to be moved
   function setProviderFromEndpoint (endpoint, context, cb) {
-    var oldProvider = web3.currentProvider
+    //let oldChainsqlWS = self.currentChainsqlWS;
+    let oldChainsqlWS = "";
 
-    if (endpoint === 'ipc') {
-      web3.setProvider(new web3.providers.IpcProvider())
-    } else {
-      web3.setProvider(new web3.providers.HttpProvider(endpoint))
-    }
-    if (web3.isConnected()) {
-      executionContext = context
-      self._updateBlockGasLimit()
-      self.event.trigger('contextChanged', ['web3'])
-      self.event.trigger('web3EndpointChanged')
-      cb()
-    } else {
-      web3.setProvider(oldProvider)
-      var alertMsg = 'Not possible to connect to the Web3 provider. '
-      alertMsg += 'Make sure the provider is running and a connection is open (via IPC or RPC).'
-      cb(alertMsg)
-    }
+    chainsql.connect(endpoint).then((data) => {
+      executionContext = context;
+      self.currentChainsqlWS = endpoint;
+      self.event.trigger('contextChanged', ['chainsql']);
+      self.event.trigger('chainsqlWSChanged');
+      cb("connet to chainsql node successfully");
+    }).catch((err) => {
+      chainsql.connect(oldChainsqlWS);
+      let alertMsg = "Cannot connect to the chainsql websocket. Please check the ws address. ";
+      alertMsg += err;
+      cb(alertMsg);
+    });
   }
   this.setProviderFromEndpoint = setProviderFromEndpoint
 

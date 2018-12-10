@@ -84,6 +84,7 @@ function ExecutionContext () {
   this.event = new EventManager()
 
   var executionContext = null
+  this.contractObjs = {}
 
   this.blockGasLimitDefault = 4300000
   this.blockGasLimit = this.blockGasLimitDefault
@@ -109,31 +110,28 @@ function ExecutionContext () {
     return this.isVM() ? web3VM : web3
   }
 
+  this.chainsql = function () {
+    return this.isVM() ? web3VM : chainsql
+  }
+
+  this.initContractObj = function (contractName, contractAbi) {
+    console.log('initContractObj contractName:' + contractName)
+    let contractObj = chainsql.contract(contractAbi)
+    this.contractObjs[contractName] = contractObj
+  }
+
+  this.removeContractObj = function (contractName) {
+    delete this.contractObjs[contractName]
+  }
+
   this.detectNetwork = function (callback) {
     if (this.isVM()) {
       callback(null, { id: '-', name: 'VM' })
     } else {
-      this.web3().version.getNetwork((err, id) => {
-        var name = null
-        if (err) name = 'Unknown'
-        // https://github.com/ethereum/EIPs/blob/master/EIPS/eip-155.md
-        else if (id === '1') name = 'Main'
-        else if (id === '2') name = 'Morden (deprecated)'
-        else if (id === '3') name = 'Ropsten'
-        else if (id === '4') name = 'Rinkeby'
-        else if (id === '42') name = 'Kovan'
-        else name = 'Custom'
-
-        if (id === '1') {
-          this.web3().eth.getBlock(0, (error, block) => {
-            if (error) console.log('cant query first block')
-            if (block && block.hash !== mainNetGenesisHash) name = 'Custom'
-            callback(err, { id, name })
-          })
-        } else {
-          callback(err, { id, name })
-        }
-      })
+      //maybe other unique info for connected node.
+      let id = 1;
+      let name = 'ChainSQL';
+      callback(null, {id, name});
     }
   }
 
@@ -169,6 +167,7 @@ function ExecutionContext () {
   }
 
   this.executionContextChange = function (context, endPointUrl, confirmCb, infoCb, cb) {
+    console.log('in executionContextChange')
     if (!cb) cb = () => {}
 
     if (context === 'vm') {
@@ -197,6 +196,8 @@ function ExecutionContext () {
     }
 
     if (context === 'chainsql') {
+      executionContext = context;
+      console.log("selected chainsql")
       confirmCb(cb)
     }
 
@@ -251,6 +252,44 @@ function ExecutionContext () {
       alertMsg += err;
       cb(alertMsg);
     });
+    // chainsql.disconnect().then((data) => {
+    //   //disconnect successful
+    //   chainsql.connect(endpoint).then((data) => {
+    //     executionContext = context;
+    //     self.currentChainsqlWS = endpoint;
+    //     self.event.trigger('contextChanged', ['chainsql']);
+    //     self.event.trigger('chainsqlWSChanged');
+    //     cb("connet to chainsql node successfully");
+    //   }).catch((err) => {
+    //     chainsql.connect(oldChainsqlWS);
+    //     let alertMsg = "Cannot connect to the chainsql websocket. Please check the ws address. ";
+    //     alertMsg += err;
+    //     cb(alertMsg);
+    //   });
+    // }).catch((err) => {
+    //   let alertMsg = "disconnect from current chainsqlnode failed" + err;
+    //   cb(alertMsg);
+    // })
+    
+    // var oldProvider = web3.currentProvider
+
+    // if (endpoint === 'ipc') {
+    //   web3.setProvider(new web3.providers.IpcProvider())
+    // } else {
+    //   web3.setProvider(new web3.providers.HttpProvider(endpoint))
+    // }
+    // if (web3.isConnected()) {
+    //   executionContext = context
+    //   self._updateBlockGasLimit()
+    //   self.event.trigger('contextChanged', ['web3'])
+    //   self.event.trigger('web3EndpointChanged')
+    //   cb()
+    // } else {
+    //   web3.setProvider(oldProvider)
+    //   var alertMsg = 'Not possible to connect to the Web3 provider. '
+    //   alertMsg += 'Make sure the provider is running and a connection is open (via IPC or RPC).'
+    //   cb(alertMsg)
+    // }
   }
   this.setProviderFromEndpoint = setProviderFromEndpoint
 

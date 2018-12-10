@@ -52,11 +52,11 @@ class TxListener {
       }
 
       addExecutionCosts(txResult, call)
-      this._resolveTx(call, call, (error, resolvedData) => {
-        if (!error) {
-          this.event.trigger('newCall', [call])
-        }
-      })
+      // this._resolveTx(call, call, (error, resolvedData) => {
+      //   if (!error) {
+      //     this.event.trigger('newCall', [call])
+      //   }
+      // })
     })
 
     opt.event.udapp.register('transactionExecuted', (error, from, to, data, lookupOnly, txResult) => {
@@ -67,14 +67,27 @@ class TxListener {
       // in web3 mode && listen remix txs only
       if (!this._isListening) return // we don't listen
       if (this._loopId && executionContext.getProvider() !== 'vm') return // we seems to already listen on a "web3" network
-      executionContext.web3().eth.getTransaction(txResult.transactionHash, (error, tx) => {
-        if (error) return console.log(error)
+      // executionContext.web3().eth.getTransaction(txResult.transactionHash, (error, tx) => {
+      console.log("In transactionExecuted fun, txResult:", txResult);
+      executionContext.chainsql().api.getTransaction(txResult.tx_hash).then(txDetail => {
+        // if (error) return console.log(error)
 
-        addExecutionCosts(txResult, tx)
-        tx.envMode = executionContext.getProvider()
-        tx.status = txResult.result.status // 0x0 or 0x1
-        this._resolve([tx], () => {
+        // addExecutionCosts(txResult, tx)
+        txDetail.envMode = executionContext.getProvider()
+        if(txResult.status.indexOf("success") !== -1){
+          txDetail.status = true;
+        } else {
+          txDetail.status = false;
+        }
+        //tx.status = txResult.result.status // 0x0 or 0x1
+        if(txDetail.ContractOpType === 1){
+          txDetail.contractAddress = txResult.contractAddress
+        }
+        // this._resolve([tx], () => {
+        this._resolve([txDetail], () => {
         })
+      }).catch(error => {
+        if (error) return console.log(error)
       })
     })
 
@@ -198,41 +211,63 @@ class TxListener {
     })
   }
 
+  // _resolve (transactions, callback) {
+  //   async.each(transactions, (tx, cb) => {
+  //     this._api.resolveReceipt(tx, (error, receipt) => {
+  //       if (error) return cb(error)
+  //       this._resolveTx(tx, receipt, (error, resolvedData) => {
+  //         if (error) cb(error)
+  //         if (resolvedData) {
+  //           this.event.trigger('txResolved', [tx, receipt, resolvedData])
+  //         }
+  //         this.event.trigger('newTransaction', [tx, receipt])
+  //         cb()
+  //       })
+  //     })
+  //   }, () => {
+  //     callback()
+  //   })
+  // }
   _resolve (transactions, callback) {
     async.each(transactions, (tx, cb) => {
-      this._api.resolveReceipt(tx, (error, receipt) => {
-        if (error) return cb(error)
-        this._resolveTx(tx, receipt, (error, resolvedData) => {
-          if (error) cb(error)
-          if (resolvedData) {
-            this.event.trigger('txResolved', [tx, receipt, resolvedData])
-          }
-          this.event.trigger('newTransaction', [tx, receipt])
-          cb()
-        })
+      this._resolveTx(tx, (error, resolvedData) => {
+        let receipt = {}
+        if (error) cb(error)
+        if (resolvedData) {
+          console.log("resolvedData is true")
+          this.event.trigger('txResolved', [tx, receipt, resolvedData])
+        }
+        console.log("resolvedData is false")
+        this.event.trigger('newTransaction', [tx, receipt])
+        cb()
       })
     }, () => {
       callback()
     })
   }
 
-  _resolveTx (tx, receipt, cb) {
+  _resolveTx (tx, cb) {
     var contracts = this._api.contracts()
     if (!contracts) return cb()
     var contractName
     var fun
-    if (!tx.to || tx.to === '0x0') { // testrpc returns 0x0 in that case
+    // if (!tx.to || tx.to === '0x0') { // testrpc returns 0x0 in that case
+    if (!tx.specification.ContractOpType || tx.specification.ContractOpType === 1) { // testrpc returns 0x0 in that case
       // contract creation / resolve using the creation bytes code
       // if web3: we have to call getTransactionReceipt to get the created address
       // if VM: created address already included
-      var code = tx.input
+      // var code = tx.input
+      var code = tx.specification.ContractData
+      console.log("code:", code)
+      console.log("contracts:", contracts)
       contractName = this._tryResolveContract(code, contracts, true)
+      console.log("contractName:", contractName)
       if (contractName) {
-        var address = receipt.contractAddress
+        var address = tx.contractAddress
         this._resolvedContracts[address] = contractName
         fun = this._resolveFunction(contractName, contracts, tx, true)
-        if (this._resolvedTransactions[tx.hash]) {
-          this._resolvedTransactions[tx.hash].contractAddress = address
+        if (this._resolvedTransactions[tx.id]) {
+          this._resolvedTransactions[tx.id].contractAddress = address
         }
         return cb(null, {to: null, contractName: contractName, function: fun, creationAddress: address})
       }
@@ -270,13 +305,14 @@ class TxListener {
       return
     }
     var abi = contract.object.abi
-    var inputData = tx.input.replace('0x', '')
+    // var inputData = tx.input.replace('0x', '')
+    var inputData = tx.specification.ContractData
     if (!isCtor) {
       var methodIdentifiers = contract.object.evm.methodIdentifiers
       for (var fn in methodIdentifiers) {
         if (methodIdentifiers[fn] === inputData.substring(0, 8)) {
           var fnabi = txHelper.getFunction(abi, fn)
-          this._resolvedTransactions[tx.hash] = {
+          this._resolvedTransactions[tx.id] = {
             contractName: contractName,
             to: tx.to,
             fn: fn,
@@ -315,7 +351,10 @@ class TxListener {
     var found = null
     txHelper.visitContracts(compiledContracts, (contract) => {
       var bytes = isCreation ? contract.object.evm.bytecode.object : contract.object.evm.deployedBytecode.object
-      if (codeUtil.compareByteCode(codeToResolve, '0x' + bytes)) {
+      // if (codeUtil.compareByteCode(codeToResolve, '0x' + bytes)) {
+      console.log(bytes)
+      if (codeUtil.compareByteCode(codeToResolve.toLowerCase(), bytes)) {
+        console.log(contract.name)
         found = contract.name
         return true
       }
@@ -330,7 +369,7 @@ class TxListener {
     var inputTypes = []
     for (var i = 0; i < abi.inputs.length; i++) {
       var type = abi.inputs[i].type
-      inputTypes.push(type.indexOf('tuple') === 0 ? txHelper.makeFullTypeDefinition(abi.inputs[i]) : type)
+      inputTypes.push(type.indexOf('tuple') === 0 ? txHelper.makeFullTupleTypeDefinition(abi.inputs[i]) : type)
     }
     var abiCoder = new ethers.utils.AbiCoder()
     var decoded = abiCoder.decode(inputTypes, data)

@@ -179,9 +179,9 @@ module.exports = {
       data = Buffer.from(dataHex, 'hex')
     } else {
       try {
-        params = params.replace(/(^|,\s+|,)(\d+)(\s+,|,|$)/g, '$1"$2"$3') // replace non quoted number by quoted number
-        params = params.replace(/(^|,\s+|,)(0[xX][0-9a-fA-F]+)(\s+,|,|$)/g, '$1"$2"$3') // replace non quoted hex string by quoted hex string
-        funArgs = JSON.parse('[' + params + ']')
+        let paramsTemp = params.replace(/(^|,\s+|,)(\d+)(\s+,|,|$)/g, '$1"$2"$3') // replace non quoted number by quoted number
+        let paramsFinal = paramsTemp.replace(/(^|,\s+|,)(0[xX][0-9a-fA-F]+)(\s+,|,|$)/g, '$1"$2"$3') // replace non quoted hex string by quoted hex string
+        funArgs = JSON.parse('[' + paramsFinal + ']')
       } catch (e) {
         callback('Error encoding arguments: ' + e)
         return
@@ -220,7 +220,7 @@ module.exports = {
     } else {
       dataHex = helper.encodeFunctionId(funAbi) + dataHex
     }
-    callback(null, { dataHex, funAbi, funArgs, contractBytecode, contractName: contractName })
+    callback(null, { dataHex, funAbi, funArgs, params, contractBytecode, contractName: contractName })
   },
 
   atAddress: function () {},
@@ -364,18 +364,19 @@ module.exports = {
         var outputTypes = []
         for (i = 0; i < fnabi.outputs.length; i++) {
           var type = fnabi.outputs[i].type
-          outputTypes.push(type.indexOf('tuple') === 0 ? helper.makeFullTypeDefinition(fnabi.outputs[i]) : type)
+          outputTypes.push(type.indexOf('tuple') === 0 ? helper.makeFullTupleTypeDefinition(fnabi.outputs[i]) : type)
         }
 
         if (!response.length) response = new Uint8Array(32 * fnabi.outputs.length) // ensuring the data is at least filled by 0 cause `AbiCoder` throws if there's not engouh data
         // decode data
-        var abiCoder = new ethers.utils.AbiCoder()
-        var decodedObj = abiCoder.decode(outputTypes, response)
+        // var abiCoder = new ethers.utils.AbiCoder()
+        // var decodedObj = abiCoder.decode(outputTypes, response)
 
         var json = {}
         for (i = 0; i < outputTypes.length; i++) {
           var name = fnabi.outputs[i].name
-          json[i] = outputTypes[i] + ': ' + (name ? name + ' ' + decodedObj[i] : decodedObj[i])
+          // json[i] = outputTypes[i] + ': ' + (name ? name + ' ' + decodedObj[i] : decodedObj[i])
+          json[i] = outputTypes[i] + ': ' + (name ? name + ' ' + response[i] : response[i])
         }
 
         return json

@@ -78,7 +78,7 @@ class TxRunner {
     }
 
     if (!executionContext.isVM()) {
-      self.runInNode(args.from, args.to, data, args.value, args.gasLimit, args.useCall, confirmationCb, gasEstimationForceSend, promptCb, callback)
+      self.runInNode(args.from, args.to, data, args.value, args.gasLimit, args.useCall, args.isDeploy, args.contractName, args.funAbi, confirmationCb, gasEstimationForceSend, promptCb, callback)
     } else {
       try {
         self.runInVm(args.from, args.to, data, args.value, args.gasLimit, args.useCall, callback)
@@ -138,57 +138,83 @@ class TxRunner {
     })
   }
 
-  runInNode (from, to, data, value, gasLimit, useCall, confirmCb, gasEstimationForceSend, promptCb, callback) {
+  runInNode (from, to, data, value, gasLimit, useCall, isDeploy, contractName, funAbi, confirmCb, gasEstimationForceSend, promptCb, callback) {
     const self = this
     var tx = { from: from, to: to, data: data, value: value }
 
-    if (useCall) {
-      tx.gas = gasLimit
-      return executionContext.web3().eth.call(tx, function (error, result) {
-        callback(error, {
-          result: result,
-          transactionHash: result ? result.transactionHash : null
-        })
-      })
+    console.log(executionContext.contractObjs)
+    console.log(isDeploy)
+    console.log(funAbi)
+    let contractObj = executionContext.contractObjs[contractName]
+    if(isDeploy){
+      contractObj.deploy({
+        ContractValue : value.toString(),
+        Gas : gasLimit,
+        ContractData : data
+      }, callback)
+    } else if(useCall) {
+      if(funAbi.funAbiParams.length === 0){
+        contractObj.methods[funAbi.funAbiName]().call((err, res)=>{
+          console.log(err)
+          console.log("get function result:"+res)
+          callback(err,res)})  
+      } else {
+        contractObj.methods[funAbi.funAbiName](funAbi.funAbiParams).call(callback)
+      }
+    } else {
+      contractObj.methods[funAbi.funAbiName](funAbi.funAbiParams).submit({
+        Gas: gasLimit,
+        expect: "validate_success"
+      }, callback)
     }
-    executionContext.web3().eth.estimateGas(tx, function (err, gasEstimation) {
-      gasEstimationForceSend(err, () => {
-        // callback is called whenever no error
-        tx.gas = !gasEstimation ? gasLimit : gasEstimation
+    
+    // if (useCall) {
+    //   tx.gas = gasLimit
+    //   return executionContext.web3().eth.call(tx, function (error, result) {
+    //     callback(error, {
+    //       result: result,
+    //       transactionHash: result ? result.transactionHash : null
+    //     })
+    //   })
+    // }
+    // executionContext.web3().eth.estimateGas(tx, function (err, gasEstimation) {
+    //   gasEstimationForceSend(err, () => {
+    //     // callback is called whenever no error
+    //     tx.gas = !gasEstimation ? gasLimit : gasEstimation
 
-        if (self._api.config.getUnpersistedProperty('doNotShowTransactionConfirmationAgain')) {
-          return self._executeTx(tx, null, self._api, promptCb, callback)
-        }
+    //     if (self._api.config.getUnpersistedProperty('doNotShowTransactionConfirmationAgain')) {
+    //       return self._executeTx(tx, null, self._api, promptCb, callback)
+    //     }
 
-        self._api.detectNetwork((err, network) => {
-          if (err) {
-            console.log(err)
-            return
-          }
+    //     self._api.detectNetwork((err, network) => {
+    //       if (err) {
+    //         console.log(err)
+    //         return
+    //       }
 
-          confirmCb(network, tx, tx.gas, (gasPrice) => {
-            return self._executeTx(tx, gasPrice, self._api, promptCb, callback)
-          }, (error) => {
-            callback(error)
-          })
-        })
-      }, () => {
-        var blockGasLimit = executionContext.currentblockGasLimit()
-        // NOTE: estimateGas very likely will return a large limit if execution of the code failed
-        //       we want to be able to run the code in order to debug and find the cause for the failure
-        if (err) return callback(err)
+    //       confirmCb(network, tx, tx.gas, (gasPrice) => {
+    //         return self._executeTx(tx, gasPrice, self._api, promptCb, callback)
+    //       }, (error) => {
+    //         callback(error)
+    //       })
+    //     })
+    //   }, () => {
+    //     var blockGasLimit = executionContext.currentblockGasLimit()
+    //     // NOTE: estimateGas very likely will return a large limit if execution of the code failed
+    //     //       we want to be able to run the code in order to debug and find the cause for the failure
+    //     if (err) return callback(err)
 
-        var warnEstimation = ' An important gas estimation might also be the sign of a problem in the contract code. Please check loops and be sure you did not sent value to a non payable function (that\'s also the reason of strong gas estimation). '
-        warnEstimation += ' ' + err
+    //     var warnEstimation = ' An important gas estimation might also be the sign of a problem in the contract code. Please check loops and be sure you did not sent value to a non payable function (that\'s also the reason of strong gas estimation). '
+    //     warnEstimation += ' ' + err
 
-        if (gasEstimation > gasLimit) {
-          return callback('Gas required exceeds limit: ' + gasLimit + '. ' + warnEstimation)
-        }
-        if (gasEstimation > blockGasLimit) {
-          return callback('Gas required exceeds block gas limit: ' + gasLimit + '. ' + warnEstimation)
-        }
-      })
-    })
+    //     if (gasEstimation > gasLimit) {
+    //       return callback('Gas required exceeds limit: ' + gasLimit + '. ' + warnEstimation)
+    //     }
+    //     if (gasEstimation > blockGasLimit) {
+    //       return callback('Gas required exceeds block gas limit: ' + gasLimit + '. ' + warnEstimation)
+    //     }
+    //   })
+    // })
   }
 }
 

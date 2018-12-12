@@ -8,6 +8,15 @@ var Web3VMProvider = require('../web3Provider/web3VmProvider')
 const ChainsqlAPI = require('chainsql').ChainsqlAPI;
 const chainsql = new ChainsqlAPI();
 
+chainsql.toDrop = function toDrop(number, unit){
+  if(unit === "zxc"){
+    let numInDrop = number/(10**6)
+    return numInDrop
+  } else if(unit === "drop"){
+    return number
+  }
+}
+
 var rlp = ethUtil.rlp
 
 var injectedProvider
@@ -231,7 +240,7 @@ function ExecutionContext () {
 
   this.listenOnLastBlock = function () {
     this.listenOnLastBlockId = setInterval(() => {
-      this._updateBlockGasLimit()
+      //this._updateBlockGasLimit()
     }, 15000)
   }
 

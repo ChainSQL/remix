@@ -21,11 +21,13 @@ class EventsDecoder {
   */
   parseLogs (tx, contractName, compiledContracts, cb) {
     if (tx.isCall) return cb(null, { decoded: [], raw: [] })
-    this._api.resolveReceipt(tx, (error, receipt) => {
-      console.log(error)
-      if (error) return cb(error)
-      this._decodeLogs(tx, receipt, contractName, compiledContracts, cb)
-    })
+    // this._api.resolveReceipt(tx, (error, receipt) => {
+    //   console.log("In eventsDecoder.js, error:", error)
+    //   if (error) return cb(error)
+    //   this._decodeLogs(tx, receipt, contractName, compiledContracts, cb)
+    // })
+    let receipt = { logs:[] }
+    this._decodeLogs(tx, receipt, contractName, compiledContracts, cb)
   }
 
   _decodeLogs (tx, receipt, contract, contracts, cb) {

@@ -178,21 +178,24 @@ module.exports = {
       dataHex = params.replace('raw:0x', '')
       data = Buffer.from(dataHex, 'hex')
     } else {
-      try {
-        let paramsTemp = params.replace(/(^|,\s+|,)(\d+)(\s+,|,|$)/g, '$1"$2"$3') // replace non quoted number by quoted number
-        let paramsFinal = paramsTemp.replace(/(^|,\s+|,)(0[xX][0-9a-fA-F]+)(\s+,|,|$)/g, '$1"$2"$3') // replace non quoted hex string by quoted hex string
-        funArgs = JSON.parse('[' + paramsFinal + ']')
-      } catch (e) {
-        callback('Error encoding arguments: ' + e)
-        return
+      if(isConstructor){
+        try {
+          let paramsTemp = params.replace(/(^|,\s+|,)(\d+)(\s+,|,|$)/g, '$1"$2"$3') // replace non quoted number by quoted number
+          let paramsFinal = paramsTemp.replace(/(^|,\s+|,)(0[xX][0-9a-fA-F]+)(\s+,|,|$)/g, '$1"$2"$3') // replace non quoted hex string by quoted hex string
+          funArgs = JSON.parse('[' + paramsFinal + ']')
+        } catch (e) {
+          callback('Error encoding arguments: ' + e)
+          return
+        }
+        try {
+          data = helper.encodeParams(funAbi, funArgs)
+          dataHex = data.toString('hex')
+        } catch (e) {
+          callback('Error encoding arguments: ' + e)
+          return
+        }
       }
-      try {
-        data = helper.encodeParams(funAbi, funArgs)
-        dataHex = data.toString('hex')
-      } catch (e) {
-        callback('Error encoding arguments: ' + e)
-        return
-      }
+      
       if (data.slice(0, 9) === 'undefined') {
         dataHex = data.slice(9)
       }
@@ -367,7 +370,7 @@ module.exports = {
           outputTypes.push(type.indexOf('tuple') === 0 ? helper.makeFullTupleTypeDefinition(fnabi.outputs[i]) : type)
         }
 
-        if (!response.length) response = new Uint8Array(32 * fnabi.outputs.length) // ensuring the data is at least filled by 0 cause `AbiCoder` throws if there's not engouh data
+        //if (!response.length) response = new Uint8Array(32 * fnabi.outputs.length) // ensuring the data is at least filled by 0 cause `AbiCoder` throws if there's not engouh data
         // decode data
         // var abiCoder = new ethers.utils.AbiCoder()
         // var decodedObj = abiCoder.decode(outputTypes, response)
@@ -376,6 +379,7 @@ module.exports = {
         for (i = 0; i < outputTypes.length; i++) {
           var name = fnabi.outputs[i].name
           // json[i] = outputTypes[i] + ': ' + (name ? name + ' ' + decodedObj[i] : decodedObj[i])
+          console.log(response)
           json[i] = outputTypes[i] + ': ' + (name ? name + ' ' + response[i] : response[i])
         }
 

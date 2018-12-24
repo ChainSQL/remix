@@ -123,10 +123,20 @@ function ExecutionContext () {
     return this.isVM() ? web3VM : chainsql
   }
 
-  this.initContractObj = function (contractName, contractAbi) {
+  this.initContractObj = function (isload, contractName, contractAbi, contractAddr) {
     console.log('initContractObj contractName:' + contractName)
-    let contractObj = chainsql.contract(contractAbi)
-    this.contractObjs[contractName] = contractObj
+    if(!this.contractObjs.hasOwnProperty(contractName)) {
+      let contractObj
+      if(isload) {
+        contractObj = chainsql.contract(contractAbi, contractAddr)
+        self.event.trigger('loadContract', [contractAddr, contractName])
+      }
+      else {
+        contractObj = chainsql.contract(contractAbi)
+      }
+  
+      this.contractObjs[contractName] = contractObj
+    }
   }
 
   this.removeContractObj = function (contractName) {

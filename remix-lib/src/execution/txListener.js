@@ -32,6 +32,9 @@ class TxListener {
         this.startListening()
       }
     })
+    executionContext.event.register('loadContract', (contractAddr, contractName) => {
+      this._resolvedContracts[contractAddr] = contractName
+    })
 
     opt.event.udapp.register('callExecuted', (error, from, to, data, lookupOnly, txResult) => {
       if (error) return
@@ -47,7 +50,8 @@ class TxListener {
         input: data,
         id: txResult.transactionHash ? txResult.transactionHash : 'call' + (from || '') + to + data,
         isCall: true,
-        returnValue: executionContext.isVM() ? txResult.result.vm.return : ethJSUtil.toBuffer(parseInt(txResult)),
+        //returnValue: executionContext.isVM() ? txResult.result.vm.return : ethJSUtil.toBuffer(parseInt(txResult)),
+        returnValue: executionContext.isVM() ? txResult.result.vm.return : txResult,
         envMode: executionContext.getProvider(),
         specification: { ContractOpType: 3,
                          ContractAddress: to,
@@ -256,12 +260,12 @@ class TxListener {
 
   _resolveTx (tx, cb) {
     var contracts = this._api.contracts()
-    if (!contracts) return cb()
+    if (!contracts) return cb("[_resolveTx]:contracts is null")
     var contractName
     var fun
     // if (!tx.to || tx.to === '0x0') { // testrpc returns 0x0 in that case
     if(!tx.specification.ContractOpType){
-      console.log("£¡number is ture?")
+      console.log("!number is ture?")
     }
     if (!tx.specification.ContractOpType || tx.specification.ContractOpType === 1) { // testrpc returns 0x0 in that case
       // contract creation / resolve using the creation bytes code
@@ -303,7 +307,7 @@ class TxListener {
         //   }
         //   return cb()
         // })
-        return
+        return cb("Can not find contractName")
       }
       if (contractName) {
         console.log("Can find contractName, begin _resolveFunction")
@@ -337,8 +341,22 @@ class TxListener {
             params: this._decodeInputParams(inputData.substring(8), fnabi)
           }
           if (tx.returnValue) {
+            let resultArray = new Array()
+            console.log("tx.returnValue:",tx.returnValue)
+            console.log("tx.returnValue.length:",tx.returnValue.length)
+            if(typeof(tx.returnValue) !== 'string' && tx.returnValue.hasOwnProperty(0)){
+              for (let key in tx.returnValue) {
+                console.log(tx.returnValue[key])
+                resultArray.push(tx.returnValue[key])
+              }
+            }
+            else {
+              resultArray.push(tx.returnValue)
+            }
+            console.log("resultArray:",resultArray)
+            
             console.log(tx.returnValue)
-            this._resolvedTransactions[tx.id].decodedReturnValue = txFormat.decodeResponse(tx.returnValue, fnabi)
+            this._resolvedTransactions[tx.id].decodedReturnValue = txFormat.decodeResponse(resultArray, fnabi)
           }
           return this._resolvedTransactions[tx.id]
         }

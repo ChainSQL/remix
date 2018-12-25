@@ -6,16 +6,9 @@ var ethUtil = require('ethereumjs-util')
 var StateManager = require('ethereumjs-vm/dist/stateManager')
 var Web3VMProvider = require('../web3Provider/web3VmProvider')
 const ChainsqlAPI = require('chainsql').ChainsqlAPI;
-const chainsql = new ChainsqlAPI();
+//const chainsql = new ChainsqlAPI();
 
-chainsql.toDrop = function toDrop(number, unit){
-  if(unit === "zxc"){
-    let numInDrop = number/(10**6)
-    return numInDrop
-  } else if(unit === "drop"){
-    return number
-  }
-}
+var chainsql
 
 var rlp = ethUtil.rlp
 
@@ -91,6 +84,7 @@ var mainNetGenesisHash = '0xd4e56740f876aef8c010b86a40d5f56745a118d0906a34e69aec
 function ExecutionContext () {
   var self = this
   this.event = new EventManager()
+  this.chainsqlObjs = {}
 
   var executionContext = null
   this.contractObjs = {}
@@ -100,11 +94,12 @@ function ExecutionContext () {
   this.customNetWorks = {}
 
   this.init = function (config) {
-    if (config.get('settings/always-use-vm')) {
-      executionContext = 'vm'
-    } else {
-      executionContext = injectedProvider ? 'injected' : 'vm'
-    }
+    executionContext = 'chainsql'
+    // if (config.get('settings/always-use-vm')) {
+    //   executionContext = 'vm'
+    // } else {
+    //   executionContext = injectedProvider ? 'injected' : 'vm'
+    // }
   }
 
   this.getProvider = function () {
@@ -216,7 +211,8 @@ function ExecutionContext () {
 
     if (context === 'chainsql') {
       executionContext = context;
-      console.log("selected chainsql")
+      chainsql = self.chainsqlObjs[endPointUrl]
+      console.log("selected chainsql, endpoint:", endPointUrl)
       confirmCb(cb)
     }
 
@@ -257,19 +253,32 @@ function ExecutionContext () {
   // TODO: not used here anymore and needs to be moved
   function setProviderFromEndpoint (endpoint, context, cb) {
     //let oldChainsqlWS = self.currentChainsqlWS;
-    let oldChainsqlWS = "";
 
-    chainsql.connect(endpoint).then((data) => {
-      executionContext = context;
+    const chainsqlTemp = new ChainsqlAPI();
+    chainsqlTemp.connect(endpoint).then((data) => {
+      executionContext = context + endpoint;
       self.currentChainsqlWS = endpoint;
+      
+      chainsqlTemp.toDrop = function toDrop(number, unit){
+        if(unit === "zxc"){
+          let numInDrop = number/(10**6)
+          return numInDrop
+        } else if(unit === "drop"){
+          return number
+        }
+      }
+
+      chainsql = chainsqlTemp
+      this.chainsqlObjs[endpoint] = chainsqlTemp
       self.event.trigger('contextChanged', ['chainsql']);
       self.event.trigger('chainsqlWSChanged');
-      cb("connet to chainsql node successfully");
+      let conSucInfo = 'Connet to ChainSQL node successfully, node:[' + endpoint + ']'
+      cb(true,conSucInfo);
     }).catch((err) => {
-      chainsql.connect(oldChainsqlWS);
-      let alertMsg = "Cannot connect to the chainsql websocket. Please check the ws address. ";
+      //chainsql.connect(oldChainsqlWS);
+      let alertMsg = 'Cannot connect to [' + endpoint + '], Please check the ws address.';
       alertMsg += err;
-      cb(alertMsg);
+      cb(false,alertMsg);
     });
     // chainsql.disconnect().then((data) => {
     //   //disconnect successful

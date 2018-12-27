@@ -7,7 +7,7 @@ var webworkify = require('webworkify')
 
 var compilerInput = require('./compiler-input')
 
-var remixLib = require('remix-lib')
+var remixLib = require('chainsql-remix-lib')
 var EventManager = remixLib.EventManager
 
 var txHelper = require('./txHelper')

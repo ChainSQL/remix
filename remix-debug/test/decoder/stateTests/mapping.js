@@ -1,4 +1,4 @@
-var remixLib = require('remix-lib')
+var remixLib = require('chainsql-remix-lib')
 var compilerInput = remixLib.helpers.compiler.compilerInput
 var TraceManager = remixLib.trace.TraceManager
 

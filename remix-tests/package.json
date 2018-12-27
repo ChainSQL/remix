@@ -1,6 +1,6 @@
 {
-  "name": "remix-tests",
-  "version": "0.0.21",
+  "name": "chainsql-remix-tests",
+  "version": "0.0.23",
   "description": "Tests for the Ethereum tool suite Remix",
   "main": "./src/index.js",
   "contributors": [
@@ -14,7 +14,7 @@
     }
   ],
   "bin": {
-    "remix-tests": "./bin/remix-tests"
+    "chainsql-remix-tests": "./bin/remix-tests"
   },
   "scripts": {
     "lint": "standard",
@@ -41,9 +41,9 @@
     "change-case": "^3.0.1",
     "colors": "^1.1.2",
     "commander": "^2.13.0",
-    "remix-lib": "0.3.13",
-    "remix-simulator": "0.0.8",
-    "remix-solidity": "0.2.14",
+    "chainsql-remix-lib": "^0.3.14",
+    "chainsql-remix-simulator": "^0.0.9",
+    "chainsql-remix-solidity": "^0.2.15",
     "signale": "^1.2.1",
     "solc": "^0.5.0",
     "standard": "^10.0.3",

@@ -1,5 +1,5 @@
 var common = require('./staticAnalysisCommon')
-var AstWalker = require('remix-lib').AstWalker
+var AstWalker = require('chainsql-remix-lib').AstWalker
 
 function abstractAstView () {
   this.contracts = []

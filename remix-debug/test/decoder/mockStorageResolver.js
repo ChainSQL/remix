@@ -1,5 +1,5 @@
 'use strict'
-var remixLib = require('remix-lib')
+var remixLib = require('chainsql-remix-lib')
 var util = remixLib.util
 
 class MockStorageResolver {

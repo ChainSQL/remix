@@ -145,14 +145,27 @@ class TxRunner {
     console.log(executionContext.contractObjs)
     console.log(isDeploy)
     console.log(funAbi)
-    let contractObj = executionContext.contractObjs[contractName]
+    let contractObj
     if(isDeploy){
+      contractObj = executionContext.contractObjs[contractName]
       contractObj.deploy({
         ContractValue : value.toString(),
         Gas : gasLimit,
         ContractData : data
-      }, callback)
+      }, (err, res)=>{
+        if(err) {
+          callback(err, res)
+        }
+        else {
+          let newCtrId = contractName+res.contractAddress;
+          executionContext.contractObjs[newCtrId] = contractObj
+          delete executionContext.contractObjs[contractName]
+          console.log(executionContext.contractObjs)
+          callback(err, res)
+        }
+      })
     } else if(useCall) {
+      contractObj = executionContext.contractObjs[contractName+to]
       if(funAbi.funAbiParams.length === 0){
         contractObj.methods[funAbi.funAbiName]().call((err, res)=>{
           console.log(err)
@@ -162,6 +175,7 @@ class TxRunner {
         contractObj.methods[funAbi.funAbiName](funAbi.funAbiParams).call(callback)
       }
     } else {
+      contractObj = executionContext.contractObjs[contractName+to]
       let submitOpt = {
         Gas: gasLimit,
         expect: "validate_success"

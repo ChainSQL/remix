@@ -256,14 +256,17 @@ function ExecutionContext () {
 
     const chainsqlTemp = new ChainsqlAPI();
     chainsqlTemp.connect(endpoint).then((data) => {
-      executionContext = context + endpoint;
+      executionContext = context;
       self.currentChainsqlWS = endpoint;
       
       chainsqlTemp.toDrop = function toDrop(number, unit){
-        if(unit === "zxc"){
-          let numInDrop = number/(10**6)
-          return numInDrop
-        } else if(unit === "drop"){
+        if (number === "") {
+          return 0
+        }
+        if (unit === 'zxc') {
+          let numInDrop = number*(10**6)
+          return numInDrop.toString()
+        } else if(unit === 'drop') {
           return number
         }
       }
@@ -272,11 +275,11 @@ function ExecutionContext () {
       this.chainsqlObjs[endpoint] = chainsqlTemp
       self.event.trigger('contextChanged', ['chainsql']);
       self.event.trigger('chainsqlWSChanged');
-      let conSucInfo = 'Connet to ChainSQL node successfully, node:[' + endpoint + ']'
+      let conSucInfo = 'Connet to ChainSQL node successfully, node:[ ' + endpoint + ' ]'
       cb(true,conSucInfo);
     }).catch((err) => {
       //chainsql.connect(oldChainsqlWS);
-      let alertMsg = 'Cannot connect to [' + endpoint + '], Please check the ws address.';
+      let alertMsg = 'Cannot connect to [ ' + endpoint + ' ], Please check the ws address.';
       alertMsg += err;
       cb(false,alertMsg);
     });

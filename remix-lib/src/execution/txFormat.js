@@ -3,6 +3,7 @@ var ethers = require('ethers')
 var helper = require('./txHelper')
 var asyncJS = require('async')
 var solcLinker = require('solc/linker')
+const addressCodec = require('chainsql-address-codec')
 var ethJSUtil = require('ethereumjs-util')
 
 module.exports = {
@@ -156,6 +157,18 @@ module.exports = {
   },
 
   /**
+  * decode chainsql address to hex string of 20 Bytes 
+  *
+  * @param {String} addrStr    - chainsql base58 format address
+  */
+  decodeChainsqlAddr: function decodeChainsqlAddr(addrStr){
+    let decodeRes = addressCodec.decodeAddress(addrStr)
+    // decodeRes is decimal, format to hex
+    let hexAddrStr = Buffer.from(decodeRes).toString('hex')
+    return hexAddrStr
+  },
+
+  /**
   * (DEPRECATED) build the transaction data
   *
   * @param {String} contractName
@@ -238,7 +251,7 @@ module.exports = {
             if (error) {
               return cbLibDeployed(error)
             }
-            var hexAddress = address.toString('hex')
+            var hexAddress = this.decodeChainsqlAddr(address)
             if (hexAddress.slice(0, 2) === '0x') {
               hexAddress = hexAddress.slice(2)
             }
@@ -316,11 +329,12 @@ module.exports = {
     } else {
       callbackStep(`creation of library ${libraryName} pending...`)
       var data = {dataHex: bytecode, funAbi: {type: 'constructor'}, funArgs: [], contractBytecode: bytecode, contractName: libraryShortName}
-      callbackDeployLibrary({ data: data, useCall: false }, (err, txResult) => {
+      callbackDeployLibrary({ data: data, useCall: false }, library.abi, (err, txResult) => {
         if (err) {
           return callback(err)
         }
-        var address = txResult.result.createdAddress || txResult.result.contractAddress
+        // var address = txResult.result.createdAddress || txResult.contractAddress
+        var address = txResult.contractAddress
         library.address = address
         callback(err, address)
       })

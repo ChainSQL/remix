@@ -107,8 +107,9 @@ module.exports = {
           for (var libFile in linkLibraries) {
             for (var lib in linkLibraries[libFile]) {
               var address = linkLibraries[libFile][lib]
-              if (!ethJSUtil.isValidAddress(address)) return callback(address + ' is not a valid address. Please check the provided address is valid.')
-              bytecodeToDeploy = this.linkLibraryStandardFromlinkReferences(lib, address.replace('0x', ''), bytecodeToDeploy, linkReferences)
+              // if (!ethJSUtil.isValidAddress(address)) return callback(address + ' is not a valid address. Please check the provided address is valid.')
+              // bytecodeToDeploy = this.linkLibraryStandardFromlinkReferences(lib, address.replace('0x', ''), bytecodeToDeploy, linkReferences)
+              bytecodeToDeploy = this.linkLibraryStandardFromlinkReferences(lib, address, bytecodeToDeploy, linkReferences)
             }
           }
         }

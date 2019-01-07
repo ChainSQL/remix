@@ -192,7 +192,7 @@ module.exports = {
       dataHex = params.replace('raw:0x', '')
       data = Buffer.from(dataHex, 'hex')
     } else {
-      if(isConstructor){
+      // if(isConstructor){
         try {
           let paramsTemp = params.replace(/(^|,\s+|,)(\d+)(\s+,|,|$)/g, '$1"$2"$3') // replace non quoted number by quoted number
           let paramsFinal = paramsTemp.replace(/(^|,\s+|,)(0[xX][0-9a-fA-F]+)(\s+,|,|$)/g, '$1"$2"$3') // replace non quoted hex string by quoted hex string
@@ -208,7 +208,7 @@ module.exports = {
           callback('Error encoding arguments: ' + e)
           return
         }
-      }
+      // }
       
       if (data.slice(0, 9) === 'undefined') {
         dataHex = data.slice(9)

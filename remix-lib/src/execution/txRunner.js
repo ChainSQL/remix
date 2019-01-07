@@ -143,15 +143,17 @@ class TxRunner {
     var tx = { from: from, to: to, data: data, value: value }
 
     console.log(executionContext.contractObjs)
-    console.log(isDeploy)
+    console.log('isDeploy:',isDeploy)
     console.log(funAbi)
     let contractObj
     if(isDeploy){
       contractObj = executionContext.contractObjs[contractName]
       contractObj.deploy({
-        ContractValue : value.toString(),
+        ContractData : data,
+        arguments : funAbi.funAbiParams
+      }).submit({
         Gas : gasLimit,
-        ContractData : data
+        ContractValue : value.toString()
       }, (err, res)=>{
         if(err) {
           callback(err, res)
@@ -166,14 +168,18 @@ class TxRunner {
       })
     } else if(useCall) {
       contractObj = executionContext.contractObjs[contractName+to]
-      if(funAbi.funAbiParams.length === 0){
-        contractObj.methods[funAbi.funAbiName]().call((err, res)=>{
-          console.log(err)
-          console.log("get function result:"+res)
-          callback(err,res)})  
-      } else {
-        contractObj.methods[funAbi.funAbiName](funAbi.funAbiParams).call(callback)
-      }
+      contractObj._createTxObject.apply({
+        method: funAbi.funAbiObj,
+        parent: contractObj
+      }, funAbi.funAbiParams).call(callback)
+      // if(funAbi.funAbiParams.length === 0){
+      //   contractObj.methods[funAbi.funAbiName]().call((err, res)=>{
+      //     console.log(err)
+      //     console.log("get function result:"+res)
+      //     callback(err,res)})  
+      // } else {
+      //   contractObj.methods[funAbi.funAbiName](funAbi.funAbiParams).call(callback)
+      // }
     } else {
       contractObj = executionContext.contractObjs[contractName+to]
       let submitOpt = {
@@ -186,26 +192,10 @@ class TxRunner {
       //let paramsTemp = funAbi.funAbiParams.replace(/(^|,\s+|,)(\d+)(\s+,|,|$)/g, '$1"$2"$3') // replace non quoted number by quoted number
       //let paramsFinal = funAbi.funAbiParams.replace(/(^|,\s+|,)(0[xX][0-9a-fA-F]+)(\s+,|,|$)/g, '$1"$2"$3') // replace non quoted hex string by quoted hex string
       //console.log("paramsFinal:",paramsFinal)
-      if(funAbi.funAbiParams.indexOf(',') === -1){
-        contractObj.methods[funAbi.funAbiName](funAbi.funAbiParams).submit(submitOpt, callback)
-      }
-      else {
-        let argArray = funAbi.funAbiParams.split(',')
-        console.log(argArray)
-        switch(argArray.length){
-          case 2:
-            contractObj.methods[funAbi.funAbiName](argArray[0],argArray[1]).submit(submitOpt, callback)
-            break
-          case 3:
-            contractObj.methods[funAbi.funAbiName](argArray[0],argArray[1],argArray[2]).submit(submitOpt, callback)
-            break
-          case 4:
-            contractObj.methods[funAbi.funAbiName](argArray[0],argArray[1],argArray[2],argArray[3]).submit(submitOpt, callback)
-            break
-          default:
-            callback("Params parse failed, please check")
-        }
-      }
+      contractObj._createTxObject.apply({
+        method: funAbi.funAbiObj,
+        parent: contractObj
+      }, funAbi.funAbiParams).submit(submitOpt, callback)
     }
     
     // if (useCall) {

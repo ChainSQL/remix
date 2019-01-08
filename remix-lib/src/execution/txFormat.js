@@ -193,16 +193,16 @@ module.exports = {
       dataHex = params.replace('raw:0x', '')
       data = Buffer.from(dataHex, 'hex')
     } else {
-      // if(isConstructor){
-        try {
-          let paramsTemp = params.replace(/(^|,\s+|,)(\d+)(\s+,|,|$)/g, '$1"$2"$3') // replace non quoted number by quoted number
-          let paramsFinal = paramsTemp.replace(/(^|,\s+|,)(0[xX][0-9a-fA-F]+)(\s+,|,|$)/g, '$1"$2"$3') // replace non quoted hex string by quoted hex string
-          funArgs = JSON.parse('[' + paramsFinal + ']')
-          debLog('funArgs:', funArgs)
-        } catch (e) {
-          callback('Error encoding arguments: ' + e)
-          return
-        }
+      try {
+        let paramsTemp = params.replace(/(^|,\s+|,)(\d+)(\s+,|,|$)/g, '$1"$2"$3') // replace non quoted number by quoted number
+        let paramsFinal = paramsTemp.replace(/(^|,\s+|,)(0[xX][0-9a-fA-F]+)(\s+,|,|$)/g, '$1"$2"$3') // replace non quoted hex string by quoted hex string
+        funArgs = JSON.parse('[' + paramsFinal + ']')
+        debLog('funArgs:', funArgs)
+      } catch (e) {
+        callback('Error encoding arguments: ' + e)
+        return
+      }
+      if (isConstructor) {
         try {
           data = helper.encodeParams(funAbi, funArgs)
           dataHex = data.toString('hex')
@@ -210,13 +210,13 @@ module.exports = {
           callback('Error encoding arguments: ' + e)
           return
         }
-      // }
-      
-      if (data.slice(0, 9) === 'undefined') {
-        dataHex = data.slice(9)
-      }
-      if (data.slice(0, 2) === '0x') {
-        dataHex = data.slice(2)
+
+        if (data.slice(0, 9) === 'undefined') {
+          dataHex = data.slice(9)
+        }
+        if (data.slice(0, 2) === '0x') {
+          dataHex = data.slice(2)
+        }
       }
     }
     var contractBytecode

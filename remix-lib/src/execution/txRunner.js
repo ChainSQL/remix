@@ -167,10 +167,16 @@ class TxRunner {
       })
     } else if(useCall) {
       contractObj = executionContext.contractObjs[contractName+to]
-      contractObj._createTxObject.apply({
+      let txObj = contractObj._createTxObject.apply({
         method: funAbi.funAbiObj,
         parent: contractObj
-      }, funAbi.funAbiParams).call(callback)
+      }, funAbi.funAbiParams)
+      txObj.call((err, ret) => {
+        let retObj = {}
+        retObj.result = ret
+        retObj.inputData = txObj.encodeABI()
+        callback(err, retObj)
+      })
     } else {
       contractObj = executionContext.contractObjs[contractName+to]
       let submitOpt = {

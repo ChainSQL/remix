@@ -9,6 +9,7 @@ var executionContext = require('./execution-context')
 var txFormat = require('./txFormat')
 var txHelper = require('./txHelper')
 const debLog = require('../debuglogger')
+const chainsqlUtils = require('../../../chainsql/src/util')
 
 /**
   * poll web3 each 2s if web3
@@ -45,7 +46,7 @@ class TxListener {
       if (!this._isListening) return // we don't listen
       if (this._loopId && executionContext.getProvider() !== 'vm') return // we seems to already listen on a "web3" network
 
-      debLog('[In callExecuted], from:%s, to:%s, data:%s', from, to, data)
+      debLog('[In callExecuted], from:%s, to:%s, fundata:%s, funInputdata', from, to, data, txResult.inputData)
       var call = {
         from: from,
         to: to,
@@ -53,11 +54,11 @@ class TxListener {
         id: txResult.transactionHash ? txResult.transactionHash : 'call' + (from || '') + to + data,
         isCall: true,
         //returnValue: executionContext.isVM() ? txResult.result.vm.return : ethJSUtil.toBuffer(parseInt(txResult)),
-        returnValue: executionContext.isVM() ? txResult.result.vm.return : txResult,
+        returnValue: executionContext.isVM() ? txResult.result.vm.return : txResult.result,
         envMode: executionContext.getProvider(),
         specification: { ContractOpType: 3,
                          ContractAddress: to,
-                         ContractData: data.replace('0x', '')},
+                         ContractData: txResult.inputData.replace('0x', '')},
         outcome: {}
       }
 
@@ -310,7 +311,7 @@ class TxListener {
         return cb("Can not find contractName")
       }
       if (contractName) {
-        debLog('Can find contractName, begin _resolveFunction')
+        debLog('Find contractName, begin _resolveFunction')
         fun = this._resolveFunction(contractName, contracts, tx, false)
         return cb(null, {to: tx.specification.ContractAddress, contractName: contractName, function: fun})
       }
@@ -405,11 +406,20 @@ class TxListener {
     }
     var abiCoder = new ethers.utils.AbiCoder()
     var decoded = abiCoder.decode(inputTypes, data)
+    this._encodeChaisqlAddrParam(inputTypes, decoded)
     var ret = {}
     for (var k in abi.inputs) {
       ret[abi.inputs[k].type + ' ' + abi.inputs[k].name] = decoded[k]
     }
     return ret
+  }
+
+  _encodeChaisqlAddrParam (types, result) {
+    types.map(function(item, index) {
+      if(item === "address"){
+        result[index] = chainsqlUtils.encodeChainsqlAddr(result[index].slice(2));
+      }
+    });
   }
 }
 

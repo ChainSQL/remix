@@ -1,10 +1,11 @@
 'use strict'
-var ethers = require('ethers')
+// var ethers = require('ethers')
 var helper = require('./txHelper')
 var asyncJS = require('async')
 var solcLinker = require('solc/linker')
 const addressCodec = require('chainsql-address-codec')
 var ethJSUtil = require('ethereumjs-util')
+const debLog = require('../debuglogger')
 
 module.exports = {
 
@@ -197,6 +198,7 @@ module.exports = {
           let paramsTemp = params.replace(/(^|,\s+|,)(\d+)(\s+,|,|$)/g, '$1"$2"$3') // replace non quoted number by quoted number
           let paramsFinal = paramsTemp.replace(/(^|,\s+|,)(0[xX][0-9a-fA-F]+)(\s+,|,|$)/g, '$1"$2"$3') // replace non quoted hex string by quoted hex string
           funArgs = JSON.parse('[' + paramsFinal + ']')
+          debLog('funArgs:', funArgs)
         } catch (e) {
           callback('Error encoding arguments: ' + e)
           return
@@ -394,7 +396,6 @@ module.exports = {
         for (i = 0; i < outputTypes.length; i++) {
           var name = fnabi.outputs[i].name
           // json[i] = outputTypes[i] + ': ' + (name ? name + ' ' + decodedObj[i] : decodedObj[i])
-          console.log(response)
           json[i] = outputTypes[i] + ': ' + (name ? name + ' ' + response[i] : response[i])
         }
 

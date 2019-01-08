@@ -8,6 +8,7 @@ var codeUtil = require('../util')
 var executionContext = require('./execution-context')
 var txFormat = require('./txFormat')
 var txHelper = require('./txHelper')
+const debLog = require('../debuglogger')
 
 /**
   * poll web3 each 2s if web3
@@ -44,6 +45,7 @@ class TxListener {
       if (!this._isListening) return // we don't listen
       if (this._loopId && executionContext.getProvider() !== 'vm') return // we seems to already listen on a "web3" network
 
+      debLog('[In callExecuted], from:%s, to:%s, data:%s', from, to, data)
       var call = {
         from: from,
         to: to,
@@ -61,8 +63,9 @@ class TxListener {
 
       //addExecutionCosts(txResult, call)
       this._resolveTx(call, (error, resolvedData) => {
+        debLog('_resolveTx error:', error)
         if (!error) {
-          console.log("trigger newCall")
+          debLog('trigger newCall')
           this.event.trigger('newCall', [call])
         }
       })
@@ -77,10 +80,9 @@ class TxListener {
       if (!this._isListening) return // we don't listen
       if (this._loopId && executionContext.getProvider() !== 'vm') return // we seems to already listen on a "web3" network
       // executionContext.web3().eth.getTransaction(txResult.transactionHash, (error, tx) => {
-      console.log("In transactionExecuted fun, txResult:", txResult);
+      debLog('In transactionExecuted fun, txResult:', txResult);
       executionContext.chainsql().api.getTransaction(txResult.tx_hash).then(txDetail => {
         // if (error) return console.log(error)
-
         // addExecutionCosts(txResult, tx)
         txDetail.envMode = executionContext.getProvider()
         if(txResult.status.indexOf("success") !== -1){
@@ -90,11 +92,10 @@ class TxListener {
         }
         //tx.status = txResult.result.status // 0x0 or 0x1
         if(txDetail.specification.ContractOpType === 1){
-          console.log("contractAddress", txResult.contractAddress)
+          debLog('contractAddress:', txResult.contractAddress)
           txDetail.contractAddress = txResult.contractAddress
         }
         txDetail.isCall = false
-        // this._resolve([tx], () => {
         this._resolve([txDetail], () => {
         })
       }).catch(error => {
@@ -244,12 +245,12 @@ class TxListener {
       this._resolveTx(tx, (error, resolvedData) => {
         let receipt = {}
         if (error) cb(error)
-        console.log(resolvedData)
+        debLog('resolvedData:', resolvedData)
         if (resolvedData) {
-          console.log("resolvedData is true")
+          debLog('resolvedData is true')
           this.event.trigger('txResolved', [tx, receipt, resolvedData])
         }
-        console.log("resolvedData is false")
+        debLog('resolvedData is false')
         this.event.trigger('newTransaction', [tx, receipt])
         cb()
       })
@@ -265,7 +266,7 @@ class TxListener {
     var fun
     // if (!tx.to || tx.to === '0x0') { // testrpc returns 0x0 in that case
     if(!tx.specification.ContractOpType){
-      console.log("!number is ture?")
+      debLog('!number is ture?')
     }
     if (!tx.specification.ContractOpType || tx.specification.ContractOpType === 1) { // testrpc returns 0x0 in that case
       // contract creation / resolve using the creation bytes code
@@ -273,10 +274,9 @@ class TxListener {
       // if VM: created address already included
       // var code = tx.input
       var code = tx.specification.ContractData
-      console.log("code:", code)
-      console.log("contracts:", contracts)
+      debLog('code:%s, contracts:%s', code, contracts)
       contractName = this._tryResolveContract(code, contracts, true)
-      console.log("contractName:", contractName)
+      debLog('contractName:', contractName)
       if (contractName) {
         var address = tx.contractAddress
         this._resolvedContracts[address] = contractName
@@ -284,7 +284,7 @@ class TxListener {
         if (this._resolvedTransactions[tx.id]) {
           this._resolvedTransactions[tx.id].contractAddress = address
         }
-        console.log("contractAddr:", address)
+        debLog('contractAddr:', address)
         return cb(null, {to: null, contractName: contractName, function: fun, creationAddress: address})
       }
       return cb()
@@ -310,7 +310,7 @@ class TxListener {
         return cb("Can not find contractName")
       }
       if (contractName) {
-        console.log("Can find contractName, begin _resolveFunction")
+        debLog('Can find contractName, begin _resolveFunction')
         fun = this._resolveFunction(contractName, contracts, tx, false)
         return cb(null, {to: tx.specification.ContractAddress, contractName: contractName, function: fun})
       }
@@ -327,11 +327,10 @@ class TxListener {
     var abi = contract.object.abi
     // var inputData = tx.input.replace('0x', '')
     var inputData = tx.specification.ContractData
-    console.log(inputData.substring(0, 8).toLowerCase())
+    debLog(inputData.substring(0, 8).toLowerCase())
     if (!isCtor) {
       var methodIdentifiers = contract.object.evm.methodIdentifiers
       for (var fn in methodIdentifiers) {
-        console.log(methodIdentifiers[fn].toLowerCase())
         if (methodIdentifiers[fn].toLowerCase() === inputData.substring(0, 8).toLowerCase()) {
           var fnabi = txHelper.getFunction(abi, fn)
           this._resolvedTransactions[tx.id] = {
@@ -342,20 +341,17 @@ class TxListener {
           }
           if (tx.returnValue) {
             let resultArray = new Array()
-            console.log("tx.returnValue:",tx.returnValue)
-            console.log("tx.returnValue.length:",tx.returnValue.length)
             if(typeof(tx.returnValue) !== 'string' && tx.returnValue.hasOwnProperty(0)){
               for (let key in tx.returnValue) {
-                console.log(tx.returnValue[key])
                 resultArray.push(tx.returnValue[key])
               }
             }
             else {
               resultArray.push(tx.returnValue)
             }
-            console.log("resultArray:",resultArray)
-            
-            console.log(tx.returnValue)
+
+            debLog('resultArray:', resultArray)
+            debLog('tx.returnValue:', tx.returnValue)
             this._resolvedTransactions[tx.id].decodedReturnValue = txFormat.decodeResponse(resultArray, fnabi)
           }
           return this._resolvedTransactions[tx.id]
@@ -389,9 +385,8 @@ class TxListener {
     txHelper.visitContracts(compiledContracts, (contract) => {
       var bytes = isCreation ? contract.object.evm.bytecode.object : contract.object.evm.deployedBytecode.object
       // if (codeUtil.compareByteCode(codeToResolve, '0x' + bytes)) {
-      console.log(bytes)
       if (codeUtil.compareByteCode(codeToResolve.toLowerCase(), bytes)) {
-        console.log(contract.name)
+        debLog('contract.name:', contract.name)
         found = contract.name
         return true
       }

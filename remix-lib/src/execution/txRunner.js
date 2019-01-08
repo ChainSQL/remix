@@ -5,6 +5,7 @@ var ethJSUtil = require('ethereumjs-util')
 var BN = ethJSUtil.BN
 var executionContext = require('./execution-context')
 var EventManager = require('../eventManager')
+const debLog = require('../debuglogger')
 
 class TxRunner {
   constructor (vmaccounts, api) {
@@ -142,9 +143,8 @@ class TxRunner {
     const self = this
     var tx = { from: from, to: to, data: data, value: value }
 
-    console.log(executionContext.contractObjs)
-    console.log('isDeploy:',isDeploy)
-    console.log(funAbi)
+    debLog('executionContext.contractObjs:', executionContext.contractObjs)
+    debLog('isDeploy:',isDeploy)
     let contractObj
     if(isDeploy){
       contractObj = executionContext.contractObjs[contractName]
@@ -162,7 +162,6 @@ class TxRunner {
           let newCtrId = contractName+res.contractAddress;
           executionContext.contractObjs[newCtrId] = contractObj
           delete executionContext.contractObjs[contractName]
-          console.log(executionContext.contractObjs)
           callback(err, res)
         }
       })
@@ -172,14 +171,6 @@ class TxRunner {
         method: funAbi.funAbiObj,
         parent: contractObj
       }, funAbi.funAbiParams).call(callback)
-      // if(funAbi.funAbiParams.length === 0){
-      //   contractObj.methods[funAbi.funAbiName]().call((err, res)=>{
-      //     console.log(err)
-      //     console.log("get function result:"+res)
-      //     callback(err,res)})  
-      // } else {
-      //   contractObj.methods[funAbi.funAbiName](funAbi.funAbiParams).call(callback)
-      // }
     } else {
       contractObj = executionContext.contractObjs[contractName+to]
       let submitOpt = {
@@ -189,9 +180,6 @@ class TxRunner {
       if(tx.value !== undefined){
         submitOpt.ContractValue = tx.value
       }
-      //let paramsTemp = funAbi.funAbiParams.replace(/(^|,\s+|,)(\d+)(\s+,|,|$)/g, '$1"$2"$3') // replace non quoted number by quoted number
-      //let paramsFinal = funAbi.funAbiParams.replace(/(^|,\s+|,)(0[xX][0-9a-fA-F]+)(\s+,|,|$)/g, '$1"$2"$3') // replace non quoted hex string by quoted hex string
-      //console.log("paramsFinal:",paramsFinal)
       contractObj._createTxObject.apply({
         method: funAbi.funAbiObj,
         parent: contractObj

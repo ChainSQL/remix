@@ -5,6 +5,7 @@ var EthJSVM = require('ethereumjs-vm')
 var ethUtil = require('ethereumjs-util')
 var StateManager = require('ethereumjs-vm/dist/stateManager')
 var Web3VMProvider = require('../web3Provider/web3VmProvider')
+const debLog = require('../debuglogger')
 const ChainsqlAPI = require('chainsql').ChainsqlAPI;
 //const chainsql = new ChainsqlAPI();
 
@@ -119,7 +120,7 @@ function ExecutionContext () {
   }
 
   this.initContractObj = function (isload, contractName, contractAbi, contractAddr) {
-    console.log('initContractObj contractName:' + contractName)
+    debLog('initContractObj contractName:' + contractName)
     if(!this.contractObjs.hasOwnProperty(contractName)) {
       let contractObj
       if(isload) {
@@ -181,7 +182,7 @@ function ExecutionContext () {
   }
 
   this.executionContextChange = function (context, endPointUrl, confirmCb, infoCb, cb) {
-    console.log('in executionContextChange')
+    debLog('[In executionContextChange]')
     if (!cb) cb = () => {}
 
     if (context === 'vm') {
@@ -212,7 +213,7 @@ function ExecutionContext () {
     if (context === 'chainsql') {
       executionContext = context;
       chainsql = self.chainsqlObjs[endPointUrl]
-      console.log("selected chainsql, endpoint:", endPointUrl)
+      debLog("selected chainsql, endpoint:", endPointUrl)
       confirmCb(cb)
     }
 

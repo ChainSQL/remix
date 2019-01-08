@@ -1,5 +1,6 @@
 'use strict'
 var ethers = require('ethers')
+const debLog = require('../debuglogger')
 
 module.exports = {
   makeFullTupleTypeDefinition: function (typeDef) {

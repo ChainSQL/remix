@@ -146,50 +146,55 @@ class TxRunner {
     debLog('executionContext.contractObjs:', executionContext.contractObjs)
     debLog('isDeploy:',isDeploy)
     let contractObj
-    if(isDeploy){
-      contractObj = executionContext.contractObjs[contractName]
-      contractObj.deploy({
-        ContractData : data,
-        arguments : funAbi.funAbiParams
-      }).submit({
-        Gas : gasLimit,
-        ContractValue : value.toString()
-      }, (err, res)=>{
-        if(err) {
-          callback(err, res)
+
+    try {
+      if(isDeploy){
+        contractObj = executionContext.contractObjs[contractName]
+        contractObj.deploy({
+          ContractData : data,
+          arguments : funAbi.funAbiParams
+        }).submit({
+          Gas : gasLimit,
+          ContractValue : value.toString()
+        }, (err, res)=>{
+          if(err) {
+            callback(err, res)
+          }
+          else {
+            let newCtrId = contractName+res.contractAddress;
+            executionContext.contractObjs[newCtrId] = contractObj
+            delete executionContext.contractObjs[contractName]
+            callback(err, res)
+          }
+        })
+      } else if(useCall) {
+        contractObj = executionContext.contractObjs[contractName+to]
+        let txObj = contractObj._createTxObject.apply({
+          method: funAbi.funAbiObj,
+          parent: contractObj
+        }, funAbi.funAbiParams)
+        txObj.call((err, ret) => {
+          let retObj = {}
+          retObj.result = ret
+          retObj.inputData = txObj.encodeABI()
+          callback(err, retObj)
+        })
+      } else {
+        contractObj = executionContext.contractObjs[contractName+to]
+        let submitOpt = {
+          Gas: gasLimit,
+          expect: "validate_success"
         }
-        else {
-          let newCtrId = contractName+res.contractAddress;
-          executionContext.contractObjs[newCtrId] = contractObj
-          delete executionContext.contractObjs[contractName]
-          callback(err, res)
+        if(tx.value !== undefined){
+          submitOpt.ContractValue = tx.value
         }
-      })
-    } else if(useCall) {
-      contractObj = executionContext.contractObjs[contractName+to]
-      let txObj = contractObj._createTxObject.apply({
-        method: funAbi.funAbiObj,
-        parent: contractObj
-      }, funAbi.funAbiParams)
-      txObj.call((err, ret) => {
-        let retObj = {}
-        retObj.result = ret
-        retObj.inputData = txObj.encodeABI()
-        callback(err, retObj)
-      })
-    } else {
-      contractObj = executionContext.contractObjs[contractName+to]
-      let submitOpt = {
-        Gas: gasLimit,
-        expect: "validate_success"
+        contractObj._createTxObject.apply({
+          method: funAbi.funAbiObj,
+          parent: contractObj
+        }, funAbi.funAbiParams).submit(submitOpt, callback)
       }
-      if(tx.value !== undefined){
-        submitOpt.ContractValue = tx.value
-      }
-      contractObj._createTxObject.apply({
-        method: funAbi.funAbiObj,
-        parent: contractObj
-      }, funAbi.funAbiParams).submit(submitOpt, callback)
+    } catch (error) {
+      callback(error, null)
     }
     
     // if (useCall) {

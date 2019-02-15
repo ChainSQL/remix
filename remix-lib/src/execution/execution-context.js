@@ -121,17 +121,19 @@ function ExecutionContext () {
 
   this.initContractObj = function (isload, contractName, contractAbi, contractAddr) {
     debLog('initContractObj contractName:' + contractName)
-    if(!this.contractObjs.hasOwnProperty(contractName)) {
+    let contractId = this.currentChainsqlWS + contractName
+    if(!this.contractObjs.hasOwnProperty(contractId)) {
       let contractObj
       if(isload) {
         contractObj = chainsql.contract(contractAbi, contractAddr)
+        contractId += contractAddr
+        this.contractObjs[contractId] = contractObj
         self.event.trigger('loadContract', [contractAddr, contractName])
       }
       else {
         contractObj = chainsql.contract(contractAbi)
+        this.contractObjs[contractId] = contractObj
       }
-  
-      this.contractObjs[contractName] = contractObj
     }
   }
 
@@ -212,15 +214,18 @@ function ExecutionContext () {
 
     if (context === 'chainsql') {
       executionContext = context;
+      self.currentChainsqlWS = endPointUrl
       chainsql = self.chainsqlObjs[endPointUrl]
       debLog("selected chainsql, endpoint:", endPointUrl)
-      confirmCb(cb)
+      self.event.trigger('contextChanged', ['chainsql'])
+      // confirmCb(cb)
+      return cb()
     }
 
-    if (this.customNetWorks[context]) {
-      var provider = this.customNetWorks[context]
-      setProviderFromEndpoint(provider.url, provider.name, () => { cb() })
-    }
+    // if (this.customNetWorks[context]) {
+    //   var provider = this.customNetWorks[context]
+    //   setProviderFromEndpoint(provider.url, provider.name, () => { cb() })
+    // }
   }
 
   this.currentblockGasLimit = function () {

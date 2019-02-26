@@ -259,6 +259,11 @@ function ExecutionContext () {
   // TODO: not used here anymore and needs to be moved
   function setProviderFromEndpoint (endpoint, context, cb) {
     //let oldChainsqlWS = self.currentChainsqlWS;
+    let alertMsg;
+    if(this.chainsqlObjs.hasOwnProperty(endpoint)) {
+      alertMsg = '[ ' + endpoint + ' ] has been in node list already!';
+      return cb(false,alertMsg);
+    }
 
     const chainsqlTemp = new ChainsqlAPI();
     chainsqlTemp.connect(endpoint).then((data) => {
@@ -285,7 +290,7 @@ function ExecutionContext () {
       cb(true,conSucInfo);
     }).catch((err) => {
       //chainsql.connect(oldChainsqlWS);
-      let alertMsg = 'Cannot connect to [ ' + endpoint + ' ], Please check the ws address.';
+      alertMsg = 'Cannot connect to [ ' + endpoint + ' ], Please check the ws address.';
       alertMsg += err;
       cb(false,alertMsg);
     });

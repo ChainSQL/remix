@@ -150,7 +150,7 @@ class TxRunner {
     let oldCtrId = executionContext.currentChainsqlWS + contractName
 
     try {
-      if(isDeploy){
+      if (isDeploy) {
         contractObj = executionContext.contractObjs[oldCtrId]
         contractObj.deploy({
           ContractData : data,
@@ -185,18 +185,28 @@ class TxRunner {
             callback(err, retObj)
           })
         } else {
-          contractObj = executionContext.contractObjs[contractId]
           let submitOpt = {
-            Gas: gasLimit,
             expect: "validate_success"
           }
-          if(tx.value !== undefined){
-            submitOpt.ContractValue = tx.value
+          if (funAbi.funAbiObj.type === "fallback") {
+            debLog("executionContext.chainsql():", executionContext.chainsql())
+            let valueInZXC = tx.value/1000000;
+            executionContext.chainsql().payToContract(to, valueInZXC, gasLimit).submit(
+              submitOpt
+            ).then(data => {callback(null, data)}
+            ).catch(err => {callback(err, null)})
+          } else {
+            contractObj = executionContext.contractObjs[contractId]
+            submitOpt.Gas = gasLimit
+          
+            if(tx.value !== undefined){
+              submitOpt.ContractValue = tx.value
+            }
+            contractObj._createTxObject.apply({
+              method: funAbi.funAbiObj,
+              parent: contractObj
+            }, funAbi.funAbiParams).submit(submitOpt, callback)
           }
-          contractObj._createTxObject.apply({
-            method: funAbi.funAbiObj,
-            parent: contractObj
-          }, funAbi.funAbiParams).submit(submitOpt, callback)
         }
       }
     } catch (error) {

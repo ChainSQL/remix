@@ -1,7 +1,7 @@
 {
   "name": "chainsql-remix-solidity",
   "version": "0.2.16",
-  "description": "Ethereum IDE and tools for the web",
+  "description": "ChainSQL IDE and tools for the web, modified from Ethereum",
   "contributors": [
     {
       "name": "Yann Levreau",
@@ -39,14 +39,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ethereum/remix.git"
+    "url": "git+https://github.com/chainsql/remix.git"
   },
   "author": "cpp-ethereum team",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/ethereum/remix/issues"
+    "url": "https://github.com/chainsql/remix/issues"
   },
-  "homepage": "https://github.com/ethereum/remix#readme",
+  "homepage": "https://github.com/chainsql/remix#readme",
   "browserify": {
     "transform": [
       [

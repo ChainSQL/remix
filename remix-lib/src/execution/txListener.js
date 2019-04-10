@@ -9,7 +9,7 @@ var executionContext = require('./execution-context')
 var txFormat = require('./txFormat')
 var txHelper = require('./txHelper')
 const debLog = require('../debuglogger')
-const chainsqlUtils = require('../../../chainsql/src/util')
+const chainsqlUtils = require('../../../chainsql/lib/util')
 
 /**
   * poll web3 each 2s if web3

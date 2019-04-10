@@ -37,7 +37,7 @@
   },
   "author": "Remix Team",
   "license": "MIT",
-  "homepage": "https://github.com/ethereum/remix#readme",
+  "homepage": "https://github.com/chainsql/remix#readme",
   "devDependencies": {
     "npm-install-version": "^6.0.2"
   }

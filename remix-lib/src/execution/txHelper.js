@@ -1,6 +1,16 @@
 'use strict'
 var ethers = require('ethers')
+const addressCodec = require('chainsql-address-codec')
 const debLog = require('../debuglogger')
+
+function decodeChainsqlAddr (addrStr) {
+  console.log("addrStr:",addrStr)
+  let decodeRes = addressCodec.decodeAddress(addrStr)
+  // decodeRes is decimal, format to hex
+  let hexAddrStr = Buffer.from(decodeRes).toString('hex')
+  console.log("hexAddrStr:",hexAddrStr)
+  return hexAddrStr
+}
 
 module.exports = {
   makeFullTupleTypeDefinition: function (typeDef) {
@@ -23,11 +33,24 @@ module.exports = {
       }
     }
 
+    let newArgs = args.map(function(item, index) {
+      if(types[index] === "address"){
+        item = decodeChainsqlAddr(item).toUpperCase();
+      }
+      return item;
+    });
     // NOTE: the caller will concatenate the bytecode and this
     //       it could be done here too for consistency
     var abiCoder = new ethers.utils.AbiCoder()
-    return abiCoder.encode(types, args)
+    return abiCoder.encode(types, newArgs)
   },
+
+  /**
+  * decode chainsql address to hex string of 20 Bytes 
+  *
+  * @param {String} addrStr    - chainsql base58 format address
+  */
+  decodeChainsqlAddr: decodeChainsqlAddr,
 
   encodeFunctionId: function (funABI) {
     if (funABI.type === 'fallback') return '0x'

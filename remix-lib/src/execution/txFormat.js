@@ -3,7 +3,6 @@
 var helper = require('./txHelper')
 var asyncJS = require('async')
 var solcLinker = require('solc/linker')
-const addressCodec = require('chainsql-address-codec')
 var ethJSUtil = require('ethereumjs-util')
 const debLog = require('../debuglogger')
 
@@ -159,18 +158,6 @@ module.exports = {
   },
 
   /**
-  * decode chainsql address to hex string of 20 Bytes 
-  *
-  * @param {String} addrStr    - chainsql base58 format address
-  */
-  decodeChainsqlAddr: function decodeChainsqlAddr(addrStr){
-    let decodeRes = addressCodec.decodeAddress(addrStr)
-    // decodeRes is decimal, format to hex
-    let hexAddrStr = Buffer.from(decodeRes).toString('hex')
-    return hexAddrStr
-  },
-
-  /**
   * (DEPRECATED) build the transaction data
   *
   * @param {String} contractName
@@ -254,7 +241,8 @@ module.exports = {
             if (error) {
               return cbLibDeployed(error)
             }
-            var hexAddress = this.decodeChainsqlAddr(address)
+            // var hexAddress = this.decodeChainsqlAddr(address)
+            var hexAddress = helper.decodeChainsqlAddr(address)
             if (hexAddress.slice(0, 2) === '0x') {
               hexAddress = hexAddress.slice(2)
             }

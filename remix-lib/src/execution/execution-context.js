@@ -6,7 +6,7 @@ var ethUtil = require('ethereumjs-util')
 var StateManager = require('ethereumjs-vm/dist/stateManager')
 var Web3VMProvider = require('../web3Provider/web3VmProvider')
 const debLog = require('../debuglogger')
-const ChainsqlAPI = require('chainsql').ChainsqlAPI;
+const ChainsqlAPI = require('chainsql');
 //const chainsql = new ChainsqlAPI();
 
 var chainsql
